@@ -7,7 +7,6 @@ import org.bank.accountcommandservice.domain.event.MoneyDepositedEvent;
 import org.bank.accountcommandservice.domain.event.MoneyWithdrawnEvent;
 import org.bank.accountcommandservice.domain.model.Account;
 import org.bank.accountcommandservice.domain.repository.EventStore;
-import org.bank.accountcommandservice.domain.repository.SnapshotStore;
 import org.bank.accountcommandservice.infrastructure.exception.AccountAlreadyExists;
 import org.bank.accountcommandservice.infrastructure.exception.ProjectionException;
 import org.bank.accountcommandservice.infrastructure.exception.ProjectionVersionMismatchException;
@@ -19,6 +18,7 @@ import org.springframework.kafka.annotation.KafkaListener;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -27,13 +27,11 @@ public class AccountProjector {
 
     private final AccountRepository accountRepository;
     private final EventStore eventStore;
-    private final SnapshotStore snapshotStore;
 
     @Autowired
-    public AccountProjector(AccountRepository accountRepository, EventStore eventStore, SnapshotStore snapshotStore) {
+    public AccountProjector(AccountRepository accountRepository, EventStore eventStore) {
         this.accountRepository = accountRepository;
         this.eventStore = eventStore;
-        this.snapshotStore = snapshotStore;
     }
 
     @KafkaListener(topics = "${app.kafka.topic-name}", groupId = "account-projector-strict-group")
@@ -82,7 +80,7 @@ public class AccountProjector {
 
     private Account restoreAccountState(UUID accountId, int targetVersion) {
         if (targetVersion == 0) {
-            return new Account();
+            return Account.build(Collections.emptyList());
         }
         var history = eventStore.loadEventStreamUpToVersion(accountId, targetVersion);
         return Account.build(history.events());

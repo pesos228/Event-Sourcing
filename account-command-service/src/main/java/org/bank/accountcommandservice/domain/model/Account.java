@@ -23,7 +23,7 @@ public class Account {
     private int version;
     private final List<Object> uncommittedChanges = new ArrayList<>();
 
-    public Account(){
+    private Account(){
 
     }
 
